@@ -14,11 +14,11 @@ namespace SoccerLeague.API.Controllers
         }
 
         [HttpGet("api/teams")]
-        public IActionResult GetAllTeams()
+        public async Task<IActionResult> GetAllTeams()
         {
             try
             {
-                List<Team> teams = _teamRepository.getAllTeams();
+                List<Team> teams = await _teamRepository.getAllTeamsAsync();
                 return Ok(teams);
             }
             catch (Exception ex)
@@ -28,7 +28,7 @@ namespace SoccerLeague.API.Controllers
         }
 
         [HttpPost("api/addteam")]
-        public IActionResult AddTeam([FromBody] Team teamInput)
+        public async Task<IActionResult> AddTeam([FromBody] Team teamInput)
         {
             try
             {
@@ -36,7 +36,7 @@ namespace SoccerLeague.API.Controllers
                 {
                     return BadRequest("Invalid request body"); 
                 }
-                bool isSucess = _teamRepository.addTeam(teamInput);
+                bool isSucess = await _teamRepository.addTeamAsync(teamInput);
                 if ( isSucess )
                 {
                     return Ok("Team added succesfully");

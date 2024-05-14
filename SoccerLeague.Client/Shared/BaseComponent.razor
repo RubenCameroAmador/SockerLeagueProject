@@ -1,0 +1,14 @@
+﻿
+@code {
+
+    private bool _IsLoading;
+    public bool IsLoading{
+        get => _IsLoading;
+        set{
+            if(_IsLoading == value) return;
+            _IsLoading = value;
+            StateHasChanged();
+        }
+    }
+
+}

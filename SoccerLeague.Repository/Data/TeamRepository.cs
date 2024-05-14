@@ -16,19 +16,18 @@ namespace SoccerLeague.Repository.Data
         {
         }
 
-        public bool addTeam(Team team)
+        public async Task<bool> addTeamAsync(Team team)
         {
-            const string query = @"INSERT INTO public.team(
-	                                 name, date_created, last_update)
+            const string query = @"INSERT INTO public.team(name, date_created, last_update)
 	                                VALUES ( @Name, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);";
-            return DbExecute<bool>(query, team);
+            return await DbExecuteAsync<bool>(query, team);
         }
 
-        public List<Team> getAllTeams()
+        public async Task<List<Team>> getAllTeamsAsync()
         {
-            const string query = @"SELECT name AS Name
-	                               FROM team;";
-            return DbQuery<Team>(query).ToList();
+            const string query = @"SELECT name AS Name 
+                                    FROM team;";
+            return (await DbQueryAsync<Team>(query)).ToList();
         }
     }
 }

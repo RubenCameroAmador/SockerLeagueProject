@@ -13,6 +13,25 @@ var configuration = new ConfigurationBuilder()
 
 var builder = WebApplication.CreateBuilder(args);
 
+//CORS
+string? clientOrigin = Environment.GetEnvironmentVariable("CLIENT_ORIGIN");
+string corsPolicyName = "AllowClientOrigin";
+if (!string.IsNullOrEmpty(clientOrigin))
+{
+    string[] origins = clientOrigin.Split(';');
+    builder.Services.AddCors(options =>
+       {
+           options.AddPolicy(name: corsPolicyName,
+                             policy =>
+                             {
+                                 policy.WithOrigins(origins);
+                                 policy.AllowAnyHeader();
+                                 policy.AllowAnyMethod();
+                             });
+       });
+}
+
+
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -31,6 +50,8 @@ app.UseSwaggerUI();
 
 
 app.UseHttpsRedirection();
+
+app.UseCors(corsPolicyName);
 
 app.UseAuthorization();
 
