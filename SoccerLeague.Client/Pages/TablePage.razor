@@ -127,7 +127,7 @@
         {
             if (value == _FilterDate) return;
 
-            _FilterDate = value;
+            _FilterDate = value?.Date.AddDays(1).AddSeconds(-1);
             if (_applyFilters)
                 ApplyFilters();
         }
