@@ -16,5 +16,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(urlApi ?
 builder.Services.AddScoped<LogService>();
 
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ITeamMatchesRepository, TeamsMatchesRepository>();
 
 await builder.Build().RunAsync();

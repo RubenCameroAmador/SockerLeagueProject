@@ -1,0 +1,224 @@
+﻿@page "/matches"
+
+@inherits BaseComponent
+@inject ITeamRepository teamRepository
+@inject ITeamMatchesRepository teamsMatchsRepository
+@inject LogService log
+
+<PageTitle>Soccer League - Matches</PageTitle>
+
+<h2>Matches</h2>
+
+<hr />
+
+@if (IsLoading)
+{
+    <Loading />
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <h3>Add new match</h3>
+            <EditForm class="create-form" EditContext="editContext" OnValidSubmit="OnCreateTeamFormSubmit">
+                <div class="form-group">
+                    <label>Match date</label>
+                    <InputDate class="form-control" @bind-Value="Model!.MatchDate" @bind-Value:format="dd/MM/yyyy" />
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Local</label>
+                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam1"
+                                aria-placeholder="Select local team..." aria-required="true">
+                                <option selected value="0">Select..</option>
+                                @if (Teams != null)
+                                {
+                                    foreach (Team team in Teams)
+                                    {
+                                        <option value="@team.Id">@team.Name</option>
+                                    }
+                                }
+                            </InputSelect>
+                            <div>
+                                <ValidationMessage For="() => Model!.IdTeam1" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Score</label>
+                            <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam1" TValue="int"
+                                required />
+                            <div>
+                                <ValidationMessage For="() => Model!.ScoreTeam1" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group">
+                            <label>Guest</label>
+                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam2"
+                                aria-placeholder="Select guest team..." aria-required="true">
+                                <option selected value="0">Select..</option>
+                                @if (Teams != null)
+                                {
+                                    foreach (Team team in Teams)
+                                    {
+                                        <option value="@team.Id">@team.Name</option>
+                                    }
+                                }
+                            </InputSelect>
+                            <div>
+                                <ValidationMessage For="() => Model!.IdTeam2" />
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Score</label>
+                            <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam2" TValue="int"
+                                required />
+                            <div>
+                                <ValidationMessage For="() => Model!.ScoreTeam2" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary mt-2">Add</button>
+            </EditForm>
+        </div>
+    </div>
+
+    <hr />
+    <div class="card">
+        <div class="card-body">
+            <h3>Results</h3>
+            @if (TeamsMatches != null)
+            {
+                foreach (var groups in TeamsMatches.GroupBy(x => x.MatchDate.Date))
+                {
+                    <h4>@groups.Key.ToString("dddd dd MMMM yyyy")</h4>
+
+                    @foreach (var teamsMatch in groups)
+                    {
+                        <div class="card mb-1">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col">
+                                        <div class="row">
+                                            <div class="col" style="text-align: start;">
+                                                <h4>Local</h4>
+                                                <div class="fs-2">
+                                                    @(Teams?.FirstOrDefault(x => x.Id == teamsMatch.IdTeam1)?.Name ?? "-")
+                                                </div>
+                                            </div>
+                                            <div class="col fs-1 d-flex justify-content-end align-items-center">@teamsMatch.ScoreTeam1</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto d-flex align-items-center">-</div>
+                                    <div class="col" style="text-align: end;">
+                                        <div class="row">
+                                            <div class="col fs-1 d-flex justify-content-start align-items-center">@teamsMatch.ScoreTeam2</div>
+                                            <div class="col">
+                                                <h4>Guest</h4>
+                                                <div class="fs-2">
+                                                    @(Teams?.FirstOrDefault(x => x.Id == teamsMatch.IdTeam2)?.Name ?? "-")
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    }
+
+                    <hr />
+                }
+            }
+        </div>
+    </div>
+
+}
+
+@code {
+
+    public List<Team>? Teams { get; set; }
+    public List<TeamsMatch>? TeamsMatches { get; set; }
+
+    EditContext? editContext;
+    ValidationMessageStore? messageStore;
+    TeamsMatch? Model;
+
+    protected override void OnInitialized()
+    {
+        Model ??= new() { MatchDate = DateTime.Now.Date };
+        editContext = new(Model);
+        editContext.OnValidationRequested += HandleValidationRequested;
+        messageStore = new(editContext);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            Teams = await teamRepository.getAllTeamsAsync();
+            TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
+        }
+        catch (Exception ex)
+        {
+            log.Exception(ex);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void HandleValidationRequested(object? sender, ValidationRequestedEventArgs args)
+    {
+        messageStore?.Clear();
+
+        // Custom validation logic
+        if (Model?.IdTeam1 == 0)
+        {
+            messageStore?.Add(() => Model!.IdTeam1, "Select local team.");
+        }
+        if (Model?.IdTeam2 == 0)
+        {
+            messageStore?.Add(() => Model!.IdTeam2, "Select guest team.");
+        }
+        if (Model?.IdTeam1 != 0 && Model?.IdTeam2 != 0 && Model?.IdTeam1 == Model?.IdTeam2)
+        {
+            messageStore?.Add(() => Model!.IdTeam2, "Select a different guest team.");
+        }
+    }
+    void OnCreateTeamFormSubmit()
+    {
+        if (editContext!.Validate())
+        {
+            IsLoading = true;
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await teamsMatchsRepository.insertTeamMatch(Model!);
+                    Model = new() { MatchDate = DateTime.Now.Date };
+
+                }
+                catch (Exception ex)
+                {
+                    log.Exception(ex);
+                }
+                finally
+                {
+                    TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
+                    IsLoading = false;
+                }
+            });
+        }
+    }
+
+}

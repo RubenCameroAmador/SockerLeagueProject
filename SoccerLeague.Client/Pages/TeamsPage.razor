@@ -3,17 +3,19 @@
 @inject ITeamRepository repository
 @inject LogService log
 
-<PageTitle>Soccer League</PageTitle>
+<PageTitle>Soccer League - Teams</PageTitle>
 
-
-<h1>Welcome to Soccer league</h1>
+<h1>Welcome to Soccer League</h1>
 
 <p class="caption-2">You can add all the teams you want to have in your league.</p>
+
+<hr />
 
 @if (editContext != null)
 {
     <div class="card">
         <div class="card-body">
+            <h3>Add new team</h3>
             <EditForm class="create-form" EditContext="editContext" OnValidSubmit="OnCreateTeamFormSubmit">
                 <div class="form-group">
                     <label>Team name</label>
@@ -43,19 +45,12 @@
             }
             else
             {
+                <h3>Teams</h3>
                 <table class="table table-response">
                     <thead>
                         <tr>
-                            <th>Position</th>
+                            <th>#</th>
                             <th>Team</th>
-                            <th>Played</th>
-                            <th>Won</th>
-                            <th>Drawn</th>
-                            <th>Lost</th>
-                            <th>GF</th>
-                            <th>GA</th>
-                            <th>GD</th>
-                            <th>Points</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -66,14 +61,6 @@
                                 <tr>
                                     <td>@(i++)</td>
                                     <td>@team.Name</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
-                                    <td>0</td>
                                 </tr>
                             }
                         }
@@ -142,6 +129,8 @@
                 try
                 {
                     await repository.addTeamAsync(Model!);
+                    Model = new();
+
                 }
                 catch (Exception ex)
                 {
