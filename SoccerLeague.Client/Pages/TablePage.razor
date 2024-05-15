@@ -24,19 +24,19 @@ else
     }
     else
     {
-        <table class="table table-response">
+        <table class="table table-hover table-responsive">
             <thead>
                 <tr>
-                    <th>Position</th>
-                    <th>Team</th>
-                    <th>Played</th>
-                    <th>Won</th>
-                    <th>Drawn</th>
-                    <th>Lost</th>
-                    <th>GF</th>
-                    <th>GA</th>
-                    <th>GD</th>
-                    <th>Points</th>
+                    <th class="text-center">Position</th>
+                    <th class="">Team</th>
+                    <th class="text-center">Played</th>
+                    <th class="text-center">Won</th>
+                    <th class="text-center">Drawn</th>
+                    <th class="text-center">Lost</th>
+                    <th class="text-center">GF</th>
+                    <th class="text-center">GA</th>
+                    <th class="text-center">GD</th>
+                    <th class="text-center">Points</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,16 +45,16 @@ else
                     foreach (var team in Table!)
                     {
                         <tr>
-                            <td>@(i++)</td>
-                            <td>@team.Name</td>
-                            <td>@team.TotalPlayed</td>
-                            <td>@team.TotalWon</td>
-                            <td>@team.TotalDraw</td>
-                            <td>@team.TotalLost</td>
-                            <td>@team.TotalGF</td>
-                            <td>@team.TotalGA</td>
-                            <td>@team.TotalGD</td>
-                            <td>@team.TotalPoints</td>
+                            <td class="text-center">@(i++)</td>
+                            <td class="">@team.Name</td>
+                            <td class="text-center">@team.TotalPlayed</td>
+                            <td class="text-center">@team.TotalWon</td>
+                            <td class="text-center">@team.TotalDraw</td>
+                            <td class="text-center">@team.TotalLost</td>
+                            <td class="text-center">@team.TotalGF</td>
+                            <td class="text-center">@team.TotalGA</td>
+                            <td class="text-center">@team.TotalGD</td>
+                            <td class="text-center fw-bold">@team.TotalPoints</td>
                         </tr>
                     }
                 }
@@ -130,7 +130,8 @@ else
                 IEnumerable<TeamsMatch> matchesPlayed = TeamsMatches!.Where(x => x.IdTeam1 == team.Id || x.IdTeam2 == team.Id);
 
                 int totalPlayed = matchesPlayed.Count();
-                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
+                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || 
+                (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
                 int totalDraw = matchesPlayed.Count(x => x.ScoreTeam1 == x.ScoreTeam2);
                 int totalLost = totalPlayed - totalWon - totalDraw;
                 int totalGF = matchesPlayed.Select(x => x.IdTeam1 == team.Id ? x.ScoreTeam1 : x.ScoreTeam2).Sum();
@@ -152,7 +153,9 @@ else
                 });
             });
 
-            Table = Table?.OrderBy(x => x.Points).ThenBy(x => x.TotalGF).ThenBy(x => x.TotalGD).ToList();
+            Table = Table?.OrderByDescending(x => x.TotalPoints)
+            .ThenByDescending(x => x.TotalGF)
+            .ThenByDescending(x => x.TotalGD).ToList();
         }
     }
 

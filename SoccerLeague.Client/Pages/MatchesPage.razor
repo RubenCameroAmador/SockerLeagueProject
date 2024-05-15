@@ -106,21 +106,21 @@ else
                                     <div class="col">
                                         <div class="row h-100">
                                             <div class="col" style="text-align: start;">
-                                                <h4>Local</h4>
-                                                <div class="fs-2">
+                                                <h6>Local</h6>
+                                                <div class="fs-4">
                                                     @(Teams?.FirstOrDefault(x => x.Id == teamsMatch.IdTeam1)?.Name ?? "-")
                                                 </div>
                                             </div>
-                                            <div class="col fs-1 d-flex justify-content-end align-items-center">@teamsMatch.ScoreTeam1</div>
+                                            <div class="col fs-2 d-flex justify-content-end align-items-center">@teamsMatch.ScoreTeam1</div>
                                         </div>
                                     </div>
                                     <div class="col-auto d-flex align-items-center">-</div>
                                     <div class="col" style="text-align: end;">
                                         <div class="row h-100">
-                                            <div class="col fs-1 d-flex justify-content-start align-items-center">@teamsMatch.ScoreTeam2</div>
+                                            <div class="col fs-2 d-flex justify-content-start align-items-center">@teamsMatch.ScoreTeam2</div>
                                             <div class="col">
-                                                <h4>Guest</h4>
-                                                <div class="fs-2">
+                                                <h6>Guest</h6>
+                                                <div class="fs-4">
                                                     @(Teams?.FirstOrDefault(x => x.Id == teamsMatch.IdTeam2)?.Name ?? "-")
                                                 </div>
                                             </div>
