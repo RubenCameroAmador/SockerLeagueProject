@@ -12,67 +12,161 @@
 
 <hr />
 
-@if (IsLoading)
-{
-    <Loading />
-}
-else
-{
-    @if (Table!.Count == 0)
-    {
-        <p> There are no teams information </p>
-    }
-    else
-    {
-        <table class="table table-hover table-responsive">
-            <thead>
-                <tr>
-                    <th class="text-center">Position</th>
-                    <th class="">Team</th>
-                    <th class="text-center">Played</th>
-                    <th class="text-center">Won</th>
-                    <th class="text-center">Drawn</th>
-                    <th class="text-center">Lost</th>
-                    <th class="text-center">GF</th>
-                    <th class="text-center">GA</th>
-                    <th class="text-center">GD</th>
-                    <th class="text-center">Points</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    int i = 1;
-                    foreach (var team in Table!)
+<div class="filters">
+    <div class="row">
+        <div class="col">
+            <div class="form-group">
+                <label>Team</label>
+                <InputSelect class="form-select" @bind-Value="FilterTeamId" TValue="int">
+                    <option selected value="0">Select team...</option>
+                    @if (Teams != null)
                     {
-                        <tr>
-                            <td class="text-center">@(i++)</td>
-                            <td class="">@team.Name</td>
-                            <td class="text-center">@team.TotalPlayed</td>
-                            <td class="text-center">@team.TotalWon</td>
-                            <td class="text-center">@team.TotalDraw</td>
-                            <td class="text-center">@team.TotalLost</td>
-                            <td class="text-center">@team.TotalGF</td>
-                            <td class="text-center">@team.TotalGA</td>
-                            <td class="text-center">@team.TotalGD</td>
-                            <td class="text-center fw-bold">@team.TotalPoints</td>
-                        </tr>
+                        foreach (Team team in Teams)
+                        {
+                            <option value="@team.Id">@team.Name</option>
+                        }
                     }
-                }
-            </tbody>
-        </table>
-    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label>Date</label>
 
+                <InputDate class="form-control" @bind-Value="FilterDate" @bind-Value:format="dd/MM/yyyy" />
 
-}
+            </div>
+        </div>
+        <div class="col">
+            <div class="form-group">
+                <label>Position</label>
+                <InputSelect class="form-select" @bind-Value="FilterPosition">
+                    <option selected value="0">Select position..</option>
+                    @for (int i = 0; i < (Teams?.Count ?? 0); i++)
+                    {
+                        <option value="@(i+1)">@GetOrdinal(i + 1)</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="col-auto d-flex align-items-end">
+            <button type="button" class="btn btn-warning mt-1" @onclick="ClearFilters">Clear filters</button>
+        </div>
+    </div>
+</div>
+
+<div class="card my-2">
+    <div class="card-body">
+        @if (IsLoading)
+        {
+            <Loading />
+        }
+        else
+        {
+            @if (Table!.Count == 0)
+            {
+                <p> There are no teams information </p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Position</th>
+                                <th class="">Team</th>
+                                <th class="text-center">Played</th>
+                                <th class="text-center">Won</th>
+                                <th class="text-center">Drawn</th>
+                                <th class="text-center">Lost</th>
+                                <th class="text-center">GF</th>
+                                <th class="text-center">GA</th>
+                                <th class="text-center">GD</th>
+                                <th class="text-center">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                foreach (var team in Table!)
+                                {
+                                    <tr>
+                                        <td class="text-center">@team.Position</td>
+                                        <td class="">@team.Name</td>
+                                        <td class="text-center">@team.TotalPlayed</td>
+                                        <td class="text-center">@team.TotalWon</td>
+                                        <td class="text-center">@team.TotalDraw</td>
+                                        <td class="text-center">@team.TotalLost</td>
+                                        <td class="text-center">@team.TotalGF</td>
+                                        <td class="text-center">@team.TotalGA</td>
+                                        <td class="text-center">@team.TotalGD</td>
+                                        <td class="text-center fw-bold">@team.TotalPoints</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            }
+        }
+    </div>
+</div>
 
 @code {
 
     List<Team>? Teams { get; set; }
     List<TeamsMatch>? TeamsMatches { get; set; }
-    List<dynamic>? Table { get; set; } = new();
+    List<TeamsMatch>? TeamsMatchesFiltered { get; set; }
+    List<TeamTable>? Table { get; set; } = new();
+
+    private DateTime? _FilterDate = null;
+    public DateTime? FilterDate
+    {
+        get => _FilterDate;
+        set
+        {
+            if (value == _FilterDate) return;
+
+            _FilterDate = value;
+            if (_applyFilters)
+                ApplyFilters();
+        }
+    }
+
+    private int _FilterTeamId;
+    public int FilterTeamId
+    {
+        get => _FilterTeamId;
+        set
+        {
+            if (value == _FilterTeamId) return;
+
+            _FilterTeamId = value;
+            if (_applyFilters)
+                ApplyFilters();
+        }
+    }
+
+    private int _FilterPosition { get; set; }
+    public int FilterPosition
+    {
+        get => _FilterPosition;
+        set
+        {
+            if (value == _FilterPosition) return;
+
+            _FilterPosition = value;
+            if (_applyFilters)
+                ApplyFilters();
+        }
+    }
+
+    bool _applyFilters = true;
 
     protected override async Task OnInitializedAsync()
     {
+        _applyFilters = true;
+
         IsLoading = true;
         try
         {
@@ -89,49 +183,23 @@ else
         }
     }
 
-    async Task LoadMatches(DateTime datetime, bool useLoading = false)
+    async Task LoadMatches(DateTime datetime)
     {
-        if (!useLoading)
-        {
-            TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(datetime.ToString("yyyyMMdd"));
-            ProcessTable();
-        }
-        else
-        {
-            IsLoading = true;
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await LoadMatches(DateTime.MaxValue);
-                }
-                catch (Exception ex)
-                {
-                    log.Exception(ex);
-                }
-                finally
-                {
-                    IsLoading = false;
-                }
-            });
-
-        }
-
+        TeamsMatchesFiltered = TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(datetime.ToString("yyyyMMdd"));
+        ProcessTable();
     }
 
     void ProcessTable()
     {
         Table!.Clear();
-        if ((Teams?.Count ?? 0) > 0 && (TeamsMatches?.Count ?? 0) > 0)
+        if ((Teams?.Count ?? 0) > 0 && (TeamsMatchesFiltered?.Count ?? 0) > 0)
         {
-            Teams?.ForEach(team =>
+            foreach (Team team in Teams!)
             {
-                IEnumerable<TeamsMatch> matchesPlayed = TeamsMatches!.Where(x => x.IdTeam1 == team.Id || x.IdTeam2 == team.Id);
+                IEnumerable<TeamsMatch> matchesPlayed = TeamsMatchesFiltered!.Where(x => x.IdTeam1 == team.Id || x.IdTeam2 == team.Id);
 
                 int totalPlayed = matchesPlayed.Count();
-                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || 
-                (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
+                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
                 int totalDraw = matchesPlayed.Count(x => x.ScoreTeam1 == x.ScoreTeam2);
                 int totalLost = totalPlayed - totalWon - totalDraw;
                 int totalGF = matchesPlayed.Select(x => x.IdTeam1 == team.Id ? x.ScoreTeam1 : x.ScoreTeam2).Sum();
@@ -139,24 +207,150 @@ else
                 int totalGD = totalGF - totalGA;
                 int totalPoints = totalWon * 3 + totalDraw;
 
-                Table!.Add(new
-                {
-                    Name = team.Name,
-                    TotalPlayed = totalPlayed,
-                    TotalWon = totalWon,
-                    TotalDraw = totalDraw,
-                    TotalLost = totalLost,
-                    TotalGF = totalGF,
-                    TotalGA = totalGA,
-                    TotalGD = totalGD,
-                    TotalPoints = totalPoints
-                });
-            });
+                Table!.Add(new TeamTable
+                    {
+                        Position = 0,
+                        Id = team.Id,
+                        Name = team.Name,
+                        TotalPlayed = totalPlayed,
+                        TotalWon = totalWon,
+                        TotalDraw = totalDraw,
+                        TotalLost = totalLost,
+                        TotalGF = totalGF,
+                        TotalGA = totalGA,
+                        TotalGD = totalGD,
+                        TotalPoints = totalPoints
+                    });
+            }
 
             Table = Table?.OrderByDescending(x => x.TotalPoints)
             .ThenByDescending(x => x.TotalGF)
             .ThenByDescending(x => x.TotalGD).ToList();
+
+            int i = 1;
+            Table?.ForEach(x => x.Position = (i++));
+
         }
     }
+
+    void ApplyFilters()
+    {
+        if ((TeamsMatches?.Count ?? 0) == 0) return;
+
+        IsLoading = true;
+
+        Task.Run(() =>
+        {
+            try
+            {
+                IEnumerable<TeamsMatch>? matches = null;
+                matches = TeamsMatches;
+
+                if (FilterDate != null)
+                    matches = matches!.Where(x => x.MatchDate.Ticks <= FilterDate.Value.Ticks);
+
+                if (matches == null && FilterPosition == 0)
+                {
+                    Table!.Clear();
+                }
+                else
+                {
+                    TeamsMatchesFiltered = matches!.ToList();
+
+                    ProcessTable();
+
+                    if (Table != null)
+                    {
+                        if (FilterTeamId > 0)
+                            Table = Table!.Where(x => x.Id == FilterTeamId).ToList();
+
+                        int indexPosition = FilterPosition - 1;
+
+                        if (indexPosition > 0 && Table!.Count > indexPosition)
+                        {
+                            Table = new List<TeamTable> { Table[indexPosition] };
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Exception(ex);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        });
+    }
+
+    void ClearFilters()
+    {
+        _applyFilters = false;
+
+        FilterDate = null;
+        FilterTeamId = 0;
+        FilterPosition = 0;
+
+        IsLoading = true;
+        try
+        {
+            TeamsMatchesFiltered = TeamsMatches;
+            ProcessTable();
+        }
+        catch (Exception ex)
+        {
+            log.Exception(ex);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+
+        _applyFilters = true;
+
+    }
+
+    public string GetOrdinal(int num)
+    {
+        if (num <= 0) return num.ToString();
+
+        switch (num % 100)
+        {
+            case 11:
+            case 12:
+            case 13:
+                return num + "th";
+        }
+
+        switch (num % 10)
+        {
+            case 1:
+                return num + "st";
+            case 2:
+                return num + "nd";
+            case 3:
+                return num + "rd";
+            default:
+                return num + "th";
+        }
+    }
+
+    private class TeamTable
+    {
+        public int Position { get; set; }
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public int TotalPlayed { get; set; }
+        public int TotalWon { get; set; }
+        public int TotalDraw { get; set; }
+        public int TotalLost { get; set; }
+        public int TotalGF { get; set; }
+        public int TotalGA { get; set; }
+        public int TotalGD { get; set; }
+        public int TotalPoints { get; set; }
+    }
+
+
 
 }

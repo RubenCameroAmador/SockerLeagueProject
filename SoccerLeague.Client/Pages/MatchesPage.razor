@@ -13,7 +13,11 @@
 
 @if (IsLoading)
 {
-    <Loading />
+    <div class="card">
+        <div class="card-body">
+            <Loading />
+        </div>
+    </div>
 }
 else
 {
@@ -30,9 +34,8 @@ else
                     <div class="col">
                         <div class="form-group">
                             <label>Local</label>
-                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam1"
-                                aria-placeholder="Select local team..." aria-required="true">
-                                <option selected value="0">Select..</option>
+                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam1">
+                                <option selected value="0">Select local...</option>
                                 @if (Teams != null)
                                 {
                                     foreach (Team team in Teams)
@@ -57,9 +60,8 @@ else
                     <div class="col">
                         <div class="form-group">
                             <label>Guest</label>
-                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam2"
-                                aria-placeholder="Select guest team..." aria-required="true">
-                                <option selected value="0">Select..</option>
+                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam2">
+                                <option selected value="0">Select guest team...</option>
                                 @if (Teams != null)
                                 {
                                     foreach (Team team in Teams)

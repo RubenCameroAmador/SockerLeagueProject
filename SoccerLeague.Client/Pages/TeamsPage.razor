@@ -117,6 +117,10 @@
         {
             messageStore?.Add(() => Model!.Name, "Entry the team name.");
         }
+        if(Teams.Any(x => x.Name.Equals(Model?.Name)))
+        {
+            messageStore?.Add(() => Model!.Name, "The team already exists.");
+        }
     }
 
     void OnCreateTeamFormSubmit()
