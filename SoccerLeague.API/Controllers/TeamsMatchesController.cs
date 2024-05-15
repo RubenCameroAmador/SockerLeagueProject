@@ -6,7 +6,7 @@ namespace SoccerLeague.API.Controllers
 {
     public class TeamsMatchesController : ControllerBase
     {
-       private readonly ITeamMatchesRepository _repository;
+        private readonly ITeamMatchesRepository _repository;
         public TeamsMatchesController(ITeamMatchesRepository repository)
         {
             _repository = repository;
@@ -37,6 +37,26 @@ namespace SoccerLeague.API.Controllers
 
                 return StatusCode(500, $"Internal server error: {ex.Message}");
 
+            }
+        }
+
+        /// <summary>
+        /// string parameter format: yyyyMMdd
+        /// example: 20240514
+        /// </summary>
+        /// <param name="dateFilter"></param>
+        /// <returns></returns>
+        [HttpGet("api/GetAllTeamsMatchesByDate")]
+        public async Task<IActionResult> GetAllTeamsMatchesByDate(string dateFilter)
+        {
+            try
+            {
+                List<TeamsMatch> teams = await _repository.getTeamMatchByDate(dateFilter);
+                return Ok(teams);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
     }

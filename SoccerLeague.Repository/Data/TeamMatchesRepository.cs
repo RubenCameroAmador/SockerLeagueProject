@@ -16,6 +16,20 @@ namespace SoccerLeague.Repository.Data
         {
         }
 
+        public async Task<List<TeamsMatch>> getTeamMatchByDate(string dateFilter)
+        {
+            const string query = @"select 
+                                    id as Id,
+                                    id_team1 as IdTeam1,
+                                    score_team_1 as ScoreTeam1,
+                                    id_team_2 as IdTeam2,
+                                    score_team_2 as ScoreTeam2, 
+                                    match_date as MatchDate
+                                    from teams_matches
+                                    where CAST(match_date AS DATE) <= CAST(@dateFilter AS DATE);";
+            return (await DbQueryAsync<TeamsMatch>(query, new { dateFilter })).ToList(); 
+        }
+
         public async Task<bool> insertTeamMatch(TeamsMatch teamMatch)
         {
             const string query = @"INSERT INTO public.teams_matches(

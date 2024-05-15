@@ -10,5 +10,6 @@ namespace SoccerLeague.Core.Contracts.Repositories
     public interface ITeamMatchesRepository
     {
         Task<bool> insertTeamMatch(TeamsMatch teamMatch);
+        Task<List<TeamsMatch>> getTeamMatchByDate(string dateFilter);
     }
 }
