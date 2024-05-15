@@ -25,7 +25,9 @@ namespace SoccerLeague.Repository.Data
 
         public async Task<List<Team>> getAllTeamsAsync()
         {
-            const string query = @"SELECT name AS Name 
+            const string query = @"SELECT
+                                    id AS Id,
+                                    name AS Name 
                                     FROM team;";
             return (await DbQueryAsync<Team>(query)).ToList();
         }
