@@ -40,6 +40,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IConfiguration>(configuration);
 builder.Services.AddTransient<ITeamRepository, TeamRepository>();
+builder.Services.AddTransient<ITeamMatchesRepository, TeamMatchesRepository>();
 
 var app = builder.Build();
 
