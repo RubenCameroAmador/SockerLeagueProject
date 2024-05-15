@@ -1,0 +1,159 @@
+@page "/table"
+
+@inherits BaseComponent
+
+@inject LogService log
+@inject ITeamRepository teamRepository
+@inject ITeamMatchesRepository teamsMatchsRepository
+
+<PageTitle>Soccer League - Table</PageTitle>
+
+<h2>Table</h2>
+
+<hr />
+
+@if (IsLoading)
+{
+    <Loading />
+}
+else
+{
+    @if (Table!.Count == 0)
+    {
+        <p> There are no teams information </p>
+    }
+    else
+    {
+        <table class="table table-response">
+            <thead>
+                <tr>
+                    <th>Position</th>
+                    <th>Team</th>
+                    <th>Played</th>
+                    <th>Won</th>
+                    <th>Drawn</th>
+                    <th>Lost</th>
+                    <th>GF</th>
+                    <th>GA</th>
+                    <th>GD</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    int i = 1;
+                    foreach (var team in Table!)
+                    {
+                        <tr>
+                            <td>@(i++)</td>
+                            <td>@team.Name</td>
+                            <td>@team.TotalPlayed</td>
+                            <td>@team.TotalWon</td>
+                            <td>@team.TotalDraw</td>
+                            <td>@team.TotalLost</td>
+                            <td>@team.TotalGF</td>
+                            <td>@team.TotalGA</td>
+                            <td>@team.TotalGD</td>
+                            <td>@team.TotalPoints</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+
+
+}
+
+@code {
+
+    List<Team>? Teams { get; set; }
+    List<TeamsMatch>? TeamsMatches { get; set; }
+    List<dynamic>? Table { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        try
+        {
+            Teams = await teamRepository.getAllTeamsAsync();
+            await LoadMatches(DateTime.MaxValue);
+        }
+        catch (Exception ex)
+        {
+            log.Exception(ex);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    async Task LoadMatches(DateTime datetime, bool useLoading = false)
+    {
+        if (!useLoading)
+        {
+            TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(datetime.ToString("yyyyMMdd"));
+            ProcessTable();
+        }
+        else
+        {
+            IsLoading = true;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await LoadMatches(DateTime.MaxValue);
+                }
+                catch (Exception ex)
+                {
+                    log.Exception(ex);
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+            });
+
+        }
+
+    }
+
+    void ProcessTable()
+    {
+        Table!.Clear();
+        if ((Teams?.Count ?? 0) > 0 && (TeamsMatches?.Count ?? 0) > 0)
+        {
+            Teams?.ForEach(team =>
+            {
+                IEnumerable<TeamsMatch> matchesPlayed = TeamsMatches!.Where(x => x.IdTeam1 == team.Id || x.IdTeam2 == team.Id);
+
+                int totalPlayed = matchesPlayed.Count();
+                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
+                int totalDraw = matchesPlayed.Count(x => x.ScoreTeam1 == x.ScoreTeam2);
+                int totalLost = totalPlayed - totalWon - totalDraw;
+                int totalGF = matchesPlayed.Select(x => x.IdTeam1 == team.Id ? x.ScoreTeam1 : x.ScoreTeam2).Sum();
+                int totalGA = matchesPlayed.Select(x => x.IdTeam1 != team.Id ? x.ScoreTeam1 : x.ScoreTeam2).Sum();
+                int totalGD = totalGF - totalGA;
+                int totalPoints = totalWon * 3 + totalDraw;
+
+                Table!.Add(new
+                {
+                    Name = team.Name,
+                    TotalPlayed = totalPlayed,
+                    TotalWon = totalWon,
+                    TotalDraw = totalDraw,
+                    TotalLost = totalLost,
+                    TotalGF = totalGF,
+                    TotalGA = totalGA,
+                    TotalGD = totalGD,
+                    TotalPoints = totalPoints
+                });
+            });
+
+            Table = Table?.OrderBy(x => x.Points).ThenBy(x => x.TotalGF).ThenBy(x => x.TotalGD).ToList();
+        }
+    }
+
+}
