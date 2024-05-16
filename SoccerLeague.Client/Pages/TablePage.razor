@@ -266,7 +266,7 @@
 
                         int indexPosition = FilterPosition - 1;
 
-                        if (indexPosition > 0 && Table!.Count > indexPosition)
+                        if (indexPosition > -1 && Table!.Count > indexPosition)
                         {
                             Table = new List<TeamTable> { Table[indexPosition] };
                         }
