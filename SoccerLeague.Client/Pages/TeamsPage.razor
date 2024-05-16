@@ -125,6 +125,8 @@
 
     void OnCreateTeamFormSubmit()
     {
+        if (IsLoading) return;
+
         if (editContext!.Validate())
         {
             IsLoading = true;

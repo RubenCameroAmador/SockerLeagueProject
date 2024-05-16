@@ -34,7 +34,7 @@ else
                     <div class="col">
                         <div class="form-group">
                             <label>Local</label>
-                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam1">
+                            <InputSelect class="form-control" @bind-Value="Model!.IdTeam1">
                                 <option selected value="0">Select local team...</option>
                                 @if (Teams != null)
                                 {
@@ -51,7 +51,7 @@ else
                         <div class="form-group">
                             <label>Score</label>
                             <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam1" TValue="int"
-                                required />
+                                         required />
                             <div>
                                 <ValidationMessage For="() => Model!.ScoreTeam1" />
                             </div>
@@ -60,7 +60,7 @@ else
                     <div class="col">
                         <div class="form-group">
                             <label>Guest</label>
-                            <InputSelect class="form-select" @bind-Value="Model!.IdTeam2">
+                            <InputSelect class="form-control" @bind-Value="Model!.IdTeam2">
                                 <option selected value="0">Select guest team...</option>
                                 @if (Teams != null)
                                 {
@@ -77,7 +77,7 @@ else
                         <div class="form-group">
                             <label>Score</label>
                             <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam2" TValue="int"
-                                required />
+                                         required />
                             <div>
                                 <ValidationMessage For="() => Model!.ScoreTeam2" />
                             </div>
@@ -104,7 +104,7 @@ else
                     <h4>@datetime</h4>
                     @foreach (var teamsMatch in groups)
                     {
-                        
+
                         <div class="card mb-1">
                             <div class="card-body">
                                 <div class="row scoreboard">
@@ -155,7 +155,7 @@ else
 
     EditContext? editContext;
     ValidationMessageStore? messageStore;
-    TeamsMatch? Model;
+    TeamsMatchModel? Model;
 
     protected override void OnInitialized()
     {
@@ -204,6 +204,8 @@ else
     }
     void OnCreateTeamFormSubmit()
     {
+        if (IsLoading) return;
+
         if (editContext!.Validate())
         {
             IsLoading = true;
@@ -211,7 +213,7 @@ else
             {
                 try
                 {
-                    await teamsMatchsRepository.insertTeamMatch(Model!);
+                    await teamsMatchsRepository.insertTeamMatch(Model!.GetTeamsMatch());
                     Model = new() { MatchDate = DateTime.Now.Date };
 
                 }

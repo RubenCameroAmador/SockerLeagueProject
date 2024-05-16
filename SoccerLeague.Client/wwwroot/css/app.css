@@ -117,13 +117,32 @@ code {
 }
 
 /********************** TABLE ****************************/
-.freeze-column {
-    position: sticky;
-    left: -1px;
-    background-color: #f9f9f9 !important;
+
+.table-fixed {
+    width: 100%;
+    background-color: #fff;
 }
 
+    .table-fixed thead th, .table-fixed tbody td {
+        position: sticky;
+    }
+
+        .table-fixed .freeze-column {
+            background-color: #FAFAFA;
+            left: 0;
+            z-index: 1;
+        }
+
+    .table-fixed .position-column {
+        min-width: 79px;
+    }
+
+    .table-fixed .teamname-column {
+        left: 79px;
+    }
+
 /******************** SCORE BOARD ****************************/
+
 .scoreboard .col:first-child .team {
     text-align: start;
 }
