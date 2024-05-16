@@ -14,7 +14,7 @@
 
 <div class="filters">
     <div class="row">
-        <div class="col">
+        <div class="col-md">
             <div class="form-group">
                 <label>Team</label>
                 <InputSelect class="form-select" @bind-Value="FilterTeamId" TValue="int">
@@ -29,7 +29,7 @@
                 </InputSelect>
             </div>
         </div>
-        <div class="col">
+        <div class="col-md">
             <div class="form-group">
                 <label>Date</label>
 
@@ -37,11 +37,11 @@
 
             </div>
         </div>
-        <div class="col">
+        <div class="col-md">
             <div class="form-group">
                 <label>Position</label>
                 <InputSelect class="form-select" @bind-Value="FilterPosition">
-                    <option selected value="0">Select position..</option>
+                    <option selected value="0">Select position...</option>
                     @for (int i = 0; i < (Teams?.Count ?? 0); i++)
                     {
                         <option value="@(i+1)">@GetOrdinal(i + 1)</option>
@@ -70,11 +70,11 @@
             else
             {
                 <div class="table-responsive">
-                    <table class="table">
+                    <table class="table table-fixed">
                         <thead>
                             <tr>
-                                <th class="text-center">Position</th>
-                                <th class="">Team</th>
+                                <th class="text-center freeze-column">Position</th>
+                                <th class="freeze-column">Team</th>
                                 <th class="text-center">Played</th>
                                 <th class="text-center">Won</th>
                                 <th class="text-center">Drawn</th>
@@ -90,8 +90,8 @@
                                 foreach (var team in Table!)
                                 {
                                     <tr>
-                                        <td class="text-center">@team.Position</td>
-                                        <td class="">@team.Name</td>
+                                        <td class="text-center freeze-column">@team.Position</td>
+                                        <td class="freeze-column">@team.Name</td>
                                         <td class="text-center">@team.TotalPlayed</td>
                                         <td class="text-center">@team.TotalWon</td>
                                         <td class="text-center">@team.TotalDraw</td>
