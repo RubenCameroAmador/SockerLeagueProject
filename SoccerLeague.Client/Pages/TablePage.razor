@@ -2,9 +2,12 @@
 
 @inherits BaseComponent
 
+@implements IDisposable
+
 @inject LogService log
 @inject ITeamRepository teamRepository
 @inject ITeamMatchesRepository teamsMatchsRepository
+@inject SocketClient socketClient
 
 <PageTitle>Soccer League - Table</PageTitle>
 
@@ -165,8 +168,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        socketClient.TeamNotification += OnTeamNotification;
+        socketClient.TeamsMatchNotification += OnTeamsMatchNotification;
+
         _applyFilters = true;
 
+        await LoadAllInformation();
+    }
+
+    async Task LoadAllInformation()
+    {
         IsLoading = true;
         try
         {
@@ -186,7 +197,7 @@
     async Task LoadMatches(DateTime datetime)
     {
         TeamsMatchesFiltered = TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(datetime.ToString("yyyyMMdd"));
-        ProcessTable();
+        ApplyFilters();
     }
 
     void ProcessTable()
@@ -239,7 +250,7 @@
 
         IsLoading = true;
 
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             try
             {
@@ -280,6 +291,8 @@
             finally
             {
                 IsLoading = false;
+
+                await InvokeAsync(StateHasChanged);
             }
         });
     }
@@ -335,6 +348,90 @@
                 return num + "th";
         }
     }
+
+
+    async void AddNewTeamsMatch(TeamsMatch teamsMatch)
+    {
+        await InvokeAsync(async () =>
+        {
+            if (!(TeamsMatches?.Any(x => x.IdTeam1 == teamsMatch?.IdTeam1 && x.IdTeam2 == teamsMatch?.IdTeam2) ?? true))
+            {
+                IsLoading = true;
+                try
+                {
+                    await LoadMatches(DateTime.MaxValue);
+                }
+                catch (Exception ex)
+                {
+                    log.Exception(ex);
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+
+                StateHasChanged();
+            }
+        });
+    }
+
+    async void AddNewTeam(Team team)
+    {
+        await InvokeAsync(async () =>
+        {
+            if (!(Teams?.Any(x => x.Name == team?.Name) ?? true))
+            {
+                IsLoading = true;
+                try
+                {
+                    Teams = await teamRepository.getAllTeamsAsync();
+                    await InvokeAsync(() =>
+                    {
+                        ApplyFilters();
+                        StateHasChanged();
+                    });
+
+                }
+                catch (Exception ex)
+                {
+                    log.Exception(ex);
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+
+                StateHasChanged();
+            }
+        });
+    }
+
+    void OnTeamNotification(object sender, Team team)
+    {
+        log.Info($"Received Team {team?.Id}");
+
+        if (team == null) return;
+
+        AddNewTeam(team);
+    }
+
+    void OnTeamsMatchNotification(object sender, TeamsMatch? teamsMatch)
+    {
+        log.Info($"Received Teams match {teamsMatch?.Id}");
+
+        if (teamsMatch == null) return;
+
+        AddNewTeamsMatch(teamsMatch);
+
+    }
+
+    void IDisposable.Dispose()
+    {
+        socketClient.TeamNotification -= OnTeamNotification;
+        socketClient.TeamsMatchNotification -= OnTeamsMatchNotification;
+    }
+
+
 
     private class TeamTable
     {

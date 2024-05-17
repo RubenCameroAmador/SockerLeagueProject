@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+
+@inject SocketClient socketClient
+@inject IJSRuntime js
+
 <div class="page">
     <div class="sidebar">
         <NavMenu />
@@ -10,3 +14,10 @@
         </article>
     </main>
 </div>
+
+@code{
+    protected override async Task OnInitializedAsync()
+    {
+        await socketClient.Initilize(js);
+    }
+}

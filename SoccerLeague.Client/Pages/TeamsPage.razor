@@ -1,7 +1,11 @@
 ﻿@page "/"
 @inherits BaseComponent
+
+@implements IDisposable
+
 @inject ITeamRepository repository
 @inject LogService log
+@inject SocketClient socketClient
 
 <PageTitle>Soccer League - Teams</PageTitle>
 
@@ -80,6 +84,8 @@
 
     protected override void OnInitialized()
     {
+        socketClient.TeamNotification += OnTeamNotification;
+
         Model ??= new();
         editContext = new(Model);
         editContext.OnValidationRequested += HandleValidationRequested;
@@ -117,7 +123,7 @@
         {
             messageStore?.Add(() => Model!.Name, "Entry the team name.");
         }
-        if(Teams.Any(x => x.Name.Equals(Model?.Name)))
+        if (Teams.Any(x => x.Name.Equals(Model?.Name)))
         {
             messageStore?.Add(() => Model!.Name, "The team already exists.");
         }
@@ -134,8 +140,25 @@
             {
                 try
                 {
-                    await repository.addTeamAsync(Model!);
-                    Model = new();
+                    bool isOK = await repository.addTeamAsync(Model!);
+
+                    if (isOK)
+                    {
+                        await socketClient.SendMessage(new SocketClient.JSSocketIntegrationMessage
+                            {
+                                Message = "New team",
+                                Payload = Model,
+                                PayloadType = SocketClient.JSSocketIntegrationMessage.MainType.Team,
+                                Type = SocketClient.JSSocketIntegrationMessage.MessageType.OnMessage
+                            });
+
+                        await InvokeAsync(() => AddNewTeam(Model));
+                        await InvokeAsync(() => { Model = new(); StateHasChanged(); });
+                    }
+                    else
+                    {
+                        log.Exception(new Exception("Ups!! Something went wrong..."));
+                    }
 
                 }
                 catch (Exception ex)
@@ -144,9 +167,36 @@
                 }
                 finally
                 {
-                    await InvokeAsync(LoadTeams);
+                    //await InvokeAsync(LoadTeams);
+                    await InvokeAsync(() => IsLoading = false);
                 }
             });
         }
+    }
+
+    void AddNewTeam(Team team)
+    {
+        if (!(Teams?.Any(x => x.Name == team?.Name) ?? true))
+        {
+            IsLoading = true;
+
+            Teams.Add(team);
+
+            IsLoading = false;
+        }
+    }
+
+    void OnTeamNotification(object sender, Team team)
+    {
+        log.Info($"Received Team {team?.Id}");
+
+        if (team == null) return;
+
+        AddNewTeam(team);
+    }
+
+    void IDisposable.Dispose()
+    {
+        socketClient.TeamNotification -= OnTeamNotification;
     }
 }

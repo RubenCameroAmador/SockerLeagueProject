@@ -1,9 +1,12 @@
 ﻿@page "/matches"
 
 @inherits BaseComponent
+@implements IDisposable
+
 @inject ITeamRepository teamRepository
 @inject ITeamMatchesRepository teamsMatchsRepository
 @inject LogService log
+@inject SocketClient socketClient
 
 <PageTitle>Soccer League - Matches</PageTitle>
 
@@ -159,6 +162,9 @@ else
 
     protected override void OnInitialized()
     {
+        socketClient.TeamNotification += OnTeamNotification;
+        socketClient.TeamsMatchNotification += OnTeamsMatchNotification;
+
         Model ??= new() { MatchDate = DateTime.Now.Date };
         editContext = new(Model);
         editContext.OnValidationRequested += HandleValidationRequested;
@@ -213,8 +219,30 @@ else
             {
                 try
                 {
-                    await teamsMatchsRepository.insertTeamMatch(Model!.GetTeamsMatch());
-                    Model = new() { MatchDate = DateTime.Now.Date };
+                    TeamsMatch match = Model!.GetTeamsMatch();
+
+                    bool isOK = await teamsMatchsRepository.insertTeamMatch(match);
+
+                    if (isOK)
+                    {
+                        await socketClient.SendMessage(new SocketClient.JSSocketIntegrationMessage
+                            {
+                                Message = "New teams match",
+                                Payload = match,
+                                PayloadType = SocketClient.JSSocketIntegrationMessage.MainType.TeamMatch,
+                                Type = SocketClient.JSSocketIntegrationMessage.MessageType.OnMessage
+                            });
+
+                        await InvokeAsync(() => AddNewTeamsMatch(match));
+
+                        Model = new() { MatchDate = DateTime.Now.Date };
+
+                        log.Info("Teams match added successfully");
+                    }
+                    else
+                    {
+                        log.Exception(new Exception("Ups!! Something went wrong..."));
+                    }
 
                 }
                 catch (Exception ex)
@@ -223,11 +251,60 @@ else
                 }
                 finally
                 {
-                    TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
+                    //TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
                     IsLoading = false;
                 }
             });
         }
+    }
+
+    void AddNewTeamsMatch(TeamsMatch teamsMatch)
+    {
+        if (!(TeamsMatches?.Any(x => x.IdTeam1 == teamsMatch?.IdTeam1 && x.IdTeam2 == teamsMatch?.IdTeam2) ?? true))
+        {
+            IsLoading = true;
+
+            TeamsMatches.Add(teamsMatch);
+
+            IsLoading = false;
+        }
+    }
+
+    void AddNewTeam(Team team)
+    {
+        if (!(Teams?.Any(x => x.Name == team?.Name) ?? true))
+        {
+            IsLoading = true;
+
+            Teams.Add(team);
+
+            IsLoading = false;
+        }
+    }
+
+    void OnTeamNotification(object sender, Team team)
+    {
+        log.Info($"Received Team {team?.Id}");
+
+        if (team == null) return;
+
+        AddNewTeam(team);
+    }
+
+    void OnTeamsMatchNotification(object sender, TeamsMatch? teamsMatch)
+    {
+        log.Info($"Received Teams match {teamsMatch?.Id}");
+
+        if (teamsMatch == null) return;
+
+        AddNewTeamsMatch(teamsMatch);
+
+    }
+
+    void IDisposable.Dispose()
+    {
+        socketClient.TeamNotification -= OnTeamNotification;
+        socketClient.TeamsMatchNotification -= OnTeamsMatchNotification;
     }
 
 }
