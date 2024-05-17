@@ -5,18 +5,26 @@ using SoccerLeague.Repository.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 //CORS policy
-string corsPolicyName = "AllowClientOrigin";
-builder.Services.AddCors(options =>
+string corsPolicyName = string.Empty;
+string? clientOrigin = Environment.GetEnvironmentVariable("CLIENT_ORIGIN");
+if (!string.IsNullOrEmpty(clientOrigin))
 {
-    options.AddPolicy(name: corsPolicyName,
-                      policy =>
-                      {
-                          policy.AllowAnyOrigin();
-                          policy.AllowAnyHeader();
-                          policy.AllowAnyMethod();
-                      });
-});
-
+    string[] origins = clientOrigin.Split(';');
+    if (origins.Length > 0)
+    {
+        corsPolicyName = "AllowClientOrigin";
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(name: corsPolicyName,
+                              policy =>
+                              {
+                                  policy.WithOrigins(origins);
+                                  policy.AllowAnyHeader();
+                                  policy.AllowAnyMethod();
+                              });
+        });
+    }
+}
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -36,7 +44,8 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-app.UseCors(corsPolicyName);
+if (!string.IsNullOrEmpty(corsPolicyName))
+    app.UseCors(corsPolicyName);
 
 app.UseAuthorization();
 
