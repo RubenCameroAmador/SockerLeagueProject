@@ -154,6 +154,8 @@
 
                         await InvokeAsync(() => AddNewTeam(Model));
                         await InvokeAsync(() => { Model = new(); StateHasChanged(); });
+
+                        log.Info("Team added successfully");
                     }
                     else
                     {

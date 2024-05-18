@@ -235,8 +235,8 @@
             }
 
             Table = Table?.OrderByDescending(x => x.TotalPoints)
-            .ThenByDescending(x => x.TotalGF)
-            .ThenByDescending(x => x.TotalGD).ToList();
+            .ThenByDescending(x => x.TotalGD)
+            .ThenByDescending(x => x.TotalGF).ToList();
 
             int i = 1;
             Table?.ForEach(x => x.Position = (i++));
