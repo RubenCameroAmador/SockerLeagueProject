@@ -5,7 +5,7 @@
 
 @inject ITeamRepository repository
 @inject LogService log
-@inject SocketClient socketClient
+@inject SocketClientService socketClient
 
 <PageTitle>Soccer League - Teams</PageTitle>
 
@@ -144,12 +144,12 @@
 
                     if (isOK)
                     {
-                        await socketClient.SendMessage(new SocketClient.JSSocketIntegrationMessage
+                        await socketClient.SendMessage(new SocketClientMessage
                             {
                                 Message = "New team",
                                 Payload = Model,
-                                PayloadType = SocketClient.JSSocketIntegrationMessage.MainType.Team,
-                                Type = SocketClient.JSSocketIntegrationMessage.MessageType.OnMessage
+                                PayloadType = SocketClientMessage.MainType.Team,
+                                Type = SocketClientMessage.MessageType.OnMessage
                             });
 
                         await InvokeAsync(() => AddNewTeam(Model));

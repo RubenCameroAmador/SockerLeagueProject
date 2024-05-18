@@ -6,7 +6,7 @@
 @inject ITeamRepository teamRepository
 @inject ITeamMatchesRepository teamsMatchsRepository
 @inject LogService log
-@inject SocketClient socketClient
+@inject SocketClientService socketClient
 
 <PageTitle>Soccer League - Matches</PageTitle>
 
@@ -225,12 +225,12 @@ else
 
                     if (isOK)
                     {
-                        await socketClient.SendMessage(new SocketClient.JSSocketIntegrationMessage
+                        await socketClient.SendMessage(new SocketClientMessage
                             {
                                 Message = "New teams match",
                                 Payload = match,
-                                PayloadType = SocketClient.JSSocketIntegrationMessage.MainType.TeamMatch,
-                                Type = SocketClient.JSSocketIntegrationMessage.MessageType.OnMessage
+                                PayloadType = SocketClientMessage.MainType.TeamMatch,
+                                Type = SocketClientMessage.MessageType.OnMessage
                             });
 
                         await InvokeAsync(() => AddNewTeamsMatch(match));

@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 
-@inject SocketClient socketClient
+@inject SocketClientService socketClient
 @inject IJSRuntime js
 
 <div class="page">
@@ -18,6 +18,6 @@
 @code{
     protected override async Task OnInitializedAsync()
     {
-        await socketClient.Initilize(js);
+        await socketClient.Initilize();
     }
 }
