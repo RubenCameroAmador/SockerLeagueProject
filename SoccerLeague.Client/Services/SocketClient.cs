@@ -17,8 +17,10 @@ namespace SoccerLeague.Client.Services
         private readonly string? configSocketUrl;
         private readonly bool configIsSocketEnabled;
 
-        public event EventHandler<Team?>? TeamNotification;
-        public event EventHandler<TeamsMatch?>? TeamsMatchNotification;
+        public delegate void TeamNotificationHandler(Team? team);
+        public event TeamNotificationHandler? TeamNotification = null!;
+        public delegate void TeamsMatchNotificationHandler(TeamsMatch? teamsMatch);
+        public event TeamsMatchNotificationHandler? TeamsMatchNotification;
         public event EventHandler? OpenConnection;
         public event EventHandler? CloseConnection;
 
@@ -141,12 +143,12 @@ namespace SoccerLeague.Client.Services
                     {
                         case SocketClientMessage.MainType.Team:
                             Team? team = JsonConvert.DeserializeObject<Team>(JsonConvert.SerializeObject(data.Payload));
-                            TeamNotification?.Invoke(this, team);
+                            TeamNotification?.Invoke(team);
                             log.Info("Team received");
                             break;
                         case SocketClientMessage.MainType.TeamMatch:
                             TeamsMatch? teamsMatch = JsonConvert.DeserializeObject<TeamsMatch>(JsonConvert.SerializeObject(data.Payload));
-                            TeamsMatchNotification?.Invoke(this, teamsMatch);
+                            TeamsMatchNotification?.Invoke(teamsMatch);
                             log.Info("Teams Match received");
                             break;
                     }

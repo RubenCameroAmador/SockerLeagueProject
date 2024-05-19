@@ -1,12 +1,9 @@
 ﻿@page "/matches"
 
-@inherits BaseComponent
 @implements IDisposable
 
-@inject ITeamRepository teamRepository
-@inject ITeamMatchesRepository teamsMatchsRepository
 @inject LogService log
-@inject SocketClientService socketClient
+@inject ApplicationService app
 
 <PageTitle>Soccer League - Matches</PageTitle>
 
@@ -27,7 +24,7 @@ else
     <div class="card">
         <div class="card-body">
             <h3>Add new match</h3>
-            <EditForm class="create-form" EditContext="editContext" OnValidSubmit="OnCreateTeamFormSubmit">
+            <EditForm class="create-form" EditContext="editContext" OnValidSubmit="OnCreateTeamsMatchFormSubmit">
                 <div class="form-group">
                     <label>Match date</label>
                     <InputDate class="form-control" @bind-Value="Model!.MatchDate" @bind-Value:format="dd/MM/yyyy" />
@@ -54,7 +51,7 @@ else
                         <div class="form-group">
                             <label>Score</label>
                             <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam1" TValue="int"
-                                         required />
+                                required />
                             <div>
                                 <ValidationMessage For="() => Model!.ScoreTeam1" />
                             </div>
@@ -80,7 +77,7 @@ else
                         <div class="form-group">
                             <label>Score</label>
                             <InputNumber class="form-control" name="team-name" @bind-Value="Model!.ScoreTeam2" TValue="int"
-                                         required />
+                                required />
                             <div>
                                 <ValidationMessage For="() => Model!.ScoreTeam2" />
                             </div>
@@ -153,8 +150,10 @@ else
 
 @code {
 
-    public List<Team>? Teams { get; set; }
-    public List<TeamsMatch>? TeamsMatches { get; set; }
+    public bool IsLoading => app.IsLoading;
+
+    public List<Team>? Teams => app.Teams.OrderBy(x => x.Name).ToList();
+    public List<TeamsMatch>? TeamsMatches => app.TeamsMatches;
 
     EditContext? editContext;
     ValidationMessageStore? messageStore;
@@ -162,32 +161,20 @@ else
 
     protected override void OnInitialized()
     {
-        socketClient.TeamNotification += OnTeamNotification;
-        socketClient.TeamsMatchNotification += OnTeamsMatchNotification;
+        app.StateHasChanged += OnStateHasChanged;
 
         Model ??= new() { MatchDate = DateTime.Now.Date };
         editContext = new(Model);
         editContext.OnValidationRequested += HandleValidationRequested;
         messageStore = new(editContext);
+
+        app.LoadTeams();
+        app.LoadTeamsMatches();
     }
 
-    protected override async Task OnInitializedAsync()
+    async void OnStateHasChanged()
     {
-        IsLoading = true;
-        try
-        {
-            Teams = await teamRepository.getAllTeamsAsync();
-            Teams = Teams?.OrderBy(x => x.Name).ToList();
-            TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
-        }
-        catch (Exception ex)
-        {
-            log.Exception(ex);
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+        await InvokeAsync(StateHasChanged);
     }
 
     private void HandleValidationRequested(object? sender, ValidationRequestedEventArgs args)
@@ -208,103 +195,36 @@ else
             messageStore?.Add(() => Model!.IdTeam2, "Select a different guest team.");
         }
     }
-    void OnCreateTeamFormSubmit()
+    void OnCreateTeamsMatchFormSubmit()
     {
         if (IsLoading) return;
 
         if (editContext!.Validate())
         {
-            IsLoading = true;
-            Task.Run(async () =>
+            app.AddTeamsMatch(Model!.GetTeamsMatch(), (result) =>
             {
-                try
+                if (result == null) return;
+
+                if (result.IsSuccess)
                 {
-                    TeamsMatch match = Model!.GetTeamsMatch();
-
-                    bool isOK = await teamsMatchsRepository.insertTeamMatch(match);
-
-                    if (isOK)
-                    {
-                        await socketClient.SendMessage(new SocketClientMessage
-                            {
-                                Message = "New teams match",
-                                Payload = match,
-                                PayloadType = SocketClientMessage.MainType.TeamMatch,
-                                Type = SocketClientMessage.MessageType.OnMessage
-                            });
-
-                        await InvokeAsync(() => AddNewTeamsMatch(match));
-
-                        Model = new() { MatchDate = DateTime.Now.Date };
-
-                        log.Info("Teams match added successfully");
-                    }
-                    else
-                    {
-                        log.Exception(new Exception("Ups!! Something went wrong..."));
-                    }
-
+                    Model!.IdTeam1 = 
+                        Model!.IdTeam2 = 
+                        Model!.ScoreTeam1 =
+                        Model!.ScoreTeam2 = 0;
+                    messageStore?.Clear();
+                    editContext.MarkAsUnmodified();
+                    log.Info(result.Message ?? "Teams match added");
                 }
-                catch (Exception ex)
-                {
-                    log.Exception(ex);
-                }
-                finally
-                {
-                    //TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd"));
-                    IsLoading = false;
-                }
+                else log.Exception(new Exception(result.Message));
+
+                InvokeAsync(() => StateHasChanged());
             });
         }
     }
 
-    void AddNewTeamsMatch(TeamsMatch teamsMatch)
-    {
-        if (!(TeamsMatches?.Any(x => x.IdTeam1 == teamsMatch?.IdTeam1 && x.IdTeam2 == teamsMatch?.IdTeam2) ?? true))
-        {
-            IsLoading = true;
-
-            TeamsMatches.Add(teamsMatch);
-
-            IsLoading = false;
-        }
-    }
-
-    void AddNewTeam(Team team)
-    {
-        if (!(Teams?.Any(x => x.Name == team?.Name) ?? true))
-        {
-            IsLoading = true;
-
-            Teams.Add(team);
-
-            IsLoading = false;
-        }
-    }
-
-    void OnTeamNotification(object sender, Team team)
-    {
-        log.Info($"Received Team {team?.Id}");
-
-        if (team == null) return;
-
-        AddNewTeam(team);
-    }
-
-    void OnTeamsMatchNotification(object sender, TeamsMatch? teamsMatch)
-    {
-        log.Info($"Received Teams match {teamsMatch?.Id}");
-
-        if (teamsMatch == null) return;
-
-        AddNewTeamsMatch(teamsMatch);
-
-    }
-
     void IDisposable.Dispose()
     {
-        socketClient.TeamNotification -= OnTeamNotification;
-        socketClient.TeamsMatchNotification -= OnTeamsMatchNotification;
+        app.StateHasChanged -= OnStateHasChanged;
     }
 
 }

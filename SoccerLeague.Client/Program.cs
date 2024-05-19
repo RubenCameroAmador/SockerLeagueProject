@@ -16,5 +16,6 @@ builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<SocketClientService>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ITeamMatchesRepository, TeamsMatchesRepository>();
+builder.Services.AddScoped<ApplicationService>();
 
 await builder.Build().RunAsync();

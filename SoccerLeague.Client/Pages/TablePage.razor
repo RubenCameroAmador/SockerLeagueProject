@@ -1,13 +1,10 @@
 @page "/table"
 
-@inherits BaseComponent
-
 @implements IDisposable
 
 @inject LogService log
-@inject ITeamRepository teamRepository
-@inject ITeamMatchesRepository teamsMatchsRepository
-@inject SocketClientService socketClient
+@inject ApplicationService app
+@inject SocketClientService SocketClientService
 
 <PageTitle>Soccer League - Table</PageTitle>
 
@@ -116,9 +113,10 @@
 </div>
 
 @code {
+    public bool IsLoading { get => app.IsLoading; set => app.IsLoading = value; }
 
-    List<Team>? Teams { get; set; }
-    List<TeamsMatch>? TeamsMatches { get; set; }
+    List<Team>? Teams => app.Teams.OrderBy(x => x.Name).ToList();
+    List<TeamsMatch>? TeamsMatches => app.TeamsMatches;
     List<TeamsMatch>? TeamsMatchesFiltered { get; set; }
     List<TeamTable>? Table { get; set; } = new();
 
@@ -166,38 +164,46 @@
 
     bool _applyFilters = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        socketClient.TeamNotification += OnTeamNotification;
-        socketClient.TeamsMatchNotification += OnTeamsMatchNotification;
+        app.StateHasChanged += OnStateHasChanged;
+        SocketClientService.TeamsMatchNotification += OnTeamsMatchNofications;
 
         _applyFilters = true;
 
-        await LoadAllInformation();
+        LoadAllInformation();
     }
 
-    async Task LoadAllInformation()
+    private async void OnTeamsMatchNofications(TeamsMatch? match)
     {
-        IsLoading = true;
-        try
+        await InvokeAsync(() =>
         {
-            Teams = await teamRepository.getAllTeamsAsync();
-            await LoadMatches(DateTime.MaxValue);
-        }
-        catch (Exception ex)
-        {
-            log.Exception(ex);
-        }
-        finally
-        {
-            IsLoading = false;
-        }
+           LoadAllInformation();
+            StateHasChanged();
+        });
     }
 
-    async Task LoadMatches(DateTime datetime)
+    async void OnStateHasChanged()
     {
-        TeamsMatchesFiltered = TeamsMatches = await teamsMatchsRepository.getTeamMatchByDate(datetime.ToString("yyyyMMdd"));
-        ApplyFilters();
+        await InvokeAsync(() =>
+        {
+            ApplyFilters();
+            StateHasChanged();
+        });
+    }
+
+    void LoadAllInformation()
+    {
+        app.LoadTeams();
+        LoadMatches();
+    }
+
+    void LoadMatches()
+    {
+        app.LoadTeamsMatches((r) =>
+        {
+            TeamsMatchesFiltered = TeamsMatches;
+        });
     }
 
     void ProcessTable()
@@ -210,7 +216,8 @@
                 IEnumerable<TeamsMatch> matchesPlayed = TeamsMatchesFiltered!.Where(x => x.IdTeam1 == team.Id || x.IdTeam2 == team.Id);
 
                 int totalPlayed = matchesPlayed.Count();
-                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || (x.IdTeam2 == team.Id && x.ScoreTeam1 < x.ScoreTeam2));
+                int totalWon = matchesPlayed.Count(x => (x.IdTeam1 == team.Id && x.ScoreTeam1 > x.ScoreTeam2) || (x.IdTeam2 == team.Id
+                && x.ScoreTeam1 < x.ScoreTeam2));
                 int totalDraw = matchesPlayed.Count(x => x.ScoreTeam1 == x.ScoreTeam2);
                 int totalLost = totalPlayed - totalWon - totalDraw;
                 int totalGF = matchesPlayed.Select(x => x.IdTeam1 == team.Id ? x.ScoreTeam1 : x.ScoreTeam2).Sum();
@@ -248,53 +255,48 @@
     {
         if ((TeamsMatches?.Count ?? 0) == 0) return;
 
-        IsLoading = true;
-
-        Task.Run(async () =>
+        try
         {
-            try
+            IEnumerable<TeamsMatch>? matches = null;
+            matches = TeamsMatches;
+
+            if (FilterDate != null)
+                matches = matches!.Where(x => x.MatchDate.Ticks <= FilterDate.Value.Ticks);
+
+            if (matches == null && FilterPosition == 0)
             {
-                IEnumerable<TeamsMatch>? matches = null;
-                matches = TeamsMatches;
+                Table!.Clear();
+            }
+            else
+            {
+                TeamsMatchesFiltered = matches!.ToList();
 
-                if (FilterDate != null)
-                    matches = matches!.Where(x => x.MatchDate.Ticks <= FilterDate.Value.Ticks);
+                ProcessTable();
 
-                if (matches == null && FilterPosition == 0)
+                if (Table != null)
                 {
-                    Table!.Clear();
-                }
-                else
-                {
-                    TeamsMatchesFiltered = matches!.ToList();
+                    if (FilterTeamId > 0)
+                        Table = Table!.Where(x => x.Id == FilterTeamId).ToList();
 
-                    ProcessTable();
+                    int indexPosition = FilterPosition - 1;
 
-                    if (Table != null)
+                    if (indexPosition > -1 && Table!.Count > indexPosition)
                     {
-                        if (FilterTeamId > 0)
-                            Table = Table!.Where(x => x.Id == FilterTeamId).ToList();
-
-                        int indexPosition = FilterPosition - 1;
-
-                        if (indexPosition > -1 && Table!.Count > indexPosition)
-                        {
-                            Table = new List<TeamTable> { Table[indexPosition] };
-                        }
+                        Table = new List<TeamTable> { Table[indexPosition] };
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                log.Exception(ex);
-            }
-            finally
-            {
-                IsLoading = false;
+        }
+        catch (Exception ex)
+        {
+            log.Exception(ex);
+        }
+        finally
+        {
+            IsLoading = false;
 
-                await InvokeAsync(StateHasChanged);
-            }
-        });
+            StateHasChanged();
+        }
     }
 
     void ClearFilters()
@@ -349,105 +351,10 @@
         }
     }
 
-
-    async void AddNewTeamsMatch(TeamsMatch teamsMatch)
-    {
-        await InvokeAsync(async () =>
-        {
-            if (!(TeamsMatches?.Any(x => x.IdTeam1 == teamsMatch?.IdTeam1 && x.IdTeam2 == teamsMatch?.IdTeam2) ?? true))
-            {
-                IsLoading = true;
-                try
-                {
-                    await LoadMatches(DateTime.MaxValue);
-                }
-                catch (Exception ex)
-                {
-                    log.Exception(ex);
-                }
-                finally
-                {
-                    IsLoading = false;
-                }
-
-                StateHasChanged();
-            }
-        });
-    }
-
-    async void AddNewTeam(Team team)
-    {
-        await InvokeAsync(async () =>
-        {
-            if (!(Teams?.Any(x => x.Name == team?.Name) ?? true))
-            {
-                IsLoading = true;
-                try
-                {
-                    Teams = await teamRepository.getAllTeamsAsync();
-                    await InvokeAsync(() =>
-                    {
-                        ApplyFilters();
-                        StateHasChanged();
-                    });
-
-                }
-                catch (Exception ex)
-                {
-                    log.Exception(ex);
-                }
-                finally
-                {
-                    IsLoading = false;
-                }
-
-                StateHasChanged();
-            }
-        });
-    }
-
-    void OnTeamNotification(object sender, Team team)
-    {
-        log.Info($"Received Team {team?.Id}");
-
-        if (team == null) return;
-
-        AddNewTeam(team);
-    }
-
-    void OnTeamsMatchNotification(object sender, TeamsMatch? teamsMatch)
-    {
-        log.Info($"Received Teams match {teamsMatch?.Id}");
-
-        if (teamsMatch == null) return;
-
-        AddNewTeamsMatch(teamsMatch);
-
-    }
-
     void IDisposable.Dispose()
     {
-        socketClient.TeamNotification -= OnTeamNotification;
-        socketClient.TeamsMatchNotification -= OnTeamsMatchNotification;
+        app.StateHasChanged -= OnStateHasChanged;
+        SocketClientService.TeamsMatchNotification -= OnTeamsMatchNofications;
     }
-
-
-
-    private class TeamTable
-    {
-        public int Position { get; set; }
-        public int Id { get; set; }
-        public string? Name { get; set; }
-        public int TotalPlayed { get; set; }
-        public int TotalWon { get; set; }
-        public int TotalDraw { get; set; }
-        public int TotalLost { get; set; }
-        public int TotalGF { get; set; }
-        public int TotalGA { get; set; }
-        public int TotalGD { get; set; }
-        public int TotalPoints { get; set; }
-    }
-
-
 
 }
