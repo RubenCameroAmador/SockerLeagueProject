@@ -1,17 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
 using SoccerLeague.Client.Models;
 using SoccerLeague.Client.Repositories;
-using SoccerLeague.Client.Services;
 using SoccerLeague.Core.Contracts.Repositories;
 using SoccerLeague.Core.Entities;
+using SoccerLeague.Core.Services;
+using SoccerLeague.Core.Models;
 
-namespace SoccerLeague.Client;
+namespace SoccerLeague.Client.Services;
 
 public class ApplicationService
 {
     private readonly ITeamRepository teamRepository;
     private readonly ITeamMatchesRepository teamsMatchesRepository;
-    private readonly SocketClientService socketClientService;
     private readonly LogService log;
 
     public List<Team> Teams { get; set; } = new();
@@ -35,7 +35,6 @@ public class ApplicationService
     {
         this.teamRepository = teamRepository;
         this.teamsMatchesRepository = teamsMatchesRepository;
-        this.socketClientService = socketClientService;
         this.log = log;
 
         socketClientService.TeamNotification += OnTeamNotification!;
@@ -95,14 +94,6 @@ public class ApplicationService
 
                 if (isOK)
                 {
-                    await socketClientService.SendMessage(new SocketClientMessage
-                    {
-                        Message = "New team",
-                        Payload = team,
-                        PayloadType = SocketClientMessage.MainType.Team,
-                        Type = SocketClientMessage.MessageType.OnMessage
-                    });
-
                     AddNewTeam(team);
 
                     resultMessage = "Team added successfully";
@@ -171,14 +162,6 @@ public class ApplicationService
 
                 if (isOK)
                 {
-                    await socketClientService.SendMessage(new SocketClientMessage
-                    {
-                        Message = "New teams match",
-                        Payload = teamsMatch,
-                        PayloadType = SocketClientMessage.MainType.TeamMatch,
-                        Type = SocketClientMessage.MessageType.OnMessage
-                    });
-
                     TeamsMatches.Add(teamsMatch);
 
                     resultMessage = "Team match added successfully";

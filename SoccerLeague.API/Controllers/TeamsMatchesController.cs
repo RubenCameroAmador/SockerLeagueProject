@@ -1,15 +1,21 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SoccerLeague.Core.Contracts.Repositories;
 using SoccerLeague.Core.Entities;
+using SoccerLeague.Core.Services;
+using SoccerLeague.Core.Models;
+
 
 namespace SoccerLeague.API.Controllers
 {
     public class TeamsMatchesController : ControllerBase
     {
         private readonly ITeamMatchesRepository _repository;
-        public TeamsMatchesController(ITeamMatchesRepository repository)
+        private readonly SocketClientService _socketClientService;
+
+        public TeamsMatchesController(ITeamMatchesRepository repository, SocketClientService socketClientService)
         {
             _repository = repository;
+            _socketClientService = socketClientService;
         }
 
         [HttpPost("api/addTeamMatch")]
@@ -23,7 +29,15 @@ namespace SoccerLeague.API.Controllers
                 }
                 bool isSucess = await _repository.insertTeamMatch(teamInput);
                 if (isSucess)
-                {
+                {                    
+                    await _socketClientService.SendMessage(new SocketClientMessage
+                    {
+                        Message = "New teams match",
+                        Payload = (await _repository.getTeamMatchByDate(DateTime.MaxValue.ToString("yyyyMMdd")))?.LastOrDefault(),
+                        PayloadType = SocketClientMessage.MainType.TeamMatch,
+                        Type = SocketClientMessage.MessageType.OnMessage
+                    });
+
                     return Ok("TeamMatch added succesfully");
                 }
                 else

@@ -1,14 +1,10 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.JSInterop;
-using Newtonsoft.Json;
-using SoccerLeague.Client.Models;
-using SoccerLeague.Client.Services;
+﻿using Newtonsoft.Json;
+using SoccerLeague.Core.Models;
 using SoccerLeague.Core.Entities;
-using System.Data;
-using System.Text.Json.Serialization;
+using SoccerLeague.Core.Services;
 using Websocket.Client;
 
-namespace SoccerLeague.Client.Services
+namespace SoccerLeague.Core.Services
 {
     public class SocketClientService
     {
@@ -24,11 +20,11 @@ namespace SoccerLeague.Client.Services
         public event EventHandler? OpenConnection;
         public event EventHandler? CloseConnection;
 
-        public SocketClientService(LogService log, IConfiguration configuration)
+        public SocketClientService(LogService log, string socketUrl, bool isSocketEnabled)
         {
             this.log = log;
-            configSocketUrl = configuration.GetValue<string>("Socket");
-            configIsSocketEnabled = configuration.GetValue<bool>("SocketEnabled");
+            configSocketUrl = socketUrl;
+            configIsSocketEnabled = isSocketEnabled;
         }
 
         public async Task<bool> Initilize()
@@ -101,7 +97,8 @@ namespace SoccerLeague.Client.Services
 
             client.MessageReceived.Subscribe(msg =>
             {
-                log.Info($"Message received: {msg}");
+                //log.Info($"Message received: {msg}") // Use this line to log message received
+                
                 string? data = msg?.Text?.Trim();
                 if (string.IsNullOrEmpty(data)) return;
 

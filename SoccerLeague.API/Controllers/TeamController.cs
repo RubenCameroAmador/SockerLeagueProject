@@ -2,15 +2,19 @@
 using Newtonsoft.Json;
 using SoccerLeague.Core.Contracts.Repositories;
 using SoccerLeague.Core.Entities;
+using SoccerLeague.Core.Services;
+using SoccerLeague.Core.Models;
 
 namespace SoccerLeague.API.Controllers
 {
     public class TeamController : ControllerBase
     {
         private readonly ITeamRepository _teamRepository;
-        public TeamController(ITeamRepository teamRepository)
+        private readonly SocketClientService _socketClientService;
+        public TeamController(ITeamRepository teamRepository, SocketClientService socketClientService)
         {
             _teamRepository = teamRepository;
+            _socketClientService = socketClientService;
         }
 
         [HttpGet("api/teams")]
@@ -39,6 +43,13 @@ namespace SoccerLeague.API.Controllers
                 bool isSucess = await _teamRepository.addTeamAsync(teamInput);
                 if ( isSucess )
                 {
+                    await _socketClientService.SendMessage(new SocketClientMessage
+                    {
+                        Message = "New team",
+                        Payload = (await _teamRepository.getAllTeamsAsync())?.LastOrDefault(),
+                        PayloadType = SocketClientMessage.MainType.Team,
+                        Type = SocketClientMessage.MessageType.OnMessage
+                    });
                     return Ok("Team added succesfully");
                 }
                 else

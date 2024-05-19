@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using SoccerLeague.Core.Contracts.Repositories;
+using SoccerLeague.Core.Services;
 using SoccerLeague.Repository.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //Custom services
+
+builder.Services.AddScoped<LogService>();
+
+builder.Services.AddScoped<SocketClientService>(s =>
+{
+    SocketClientService socket = new SocketClientService(s.GetRequiredService<LogService>(),
+        builder.Configuration.GetValue<string>("Socket") ?? string.Empty,
+        builder.Configuration.GetValue<bool>("SocketEnabled"));
+    _ = socket.Initilize();
+    return socket;
+});
+
 builder.Services.AddTransient<ITeamRepository, TeamRepository>();
 builder.Services.AddTransient<ITeamMatchesRepository, TeamMatchesRepository>();
 

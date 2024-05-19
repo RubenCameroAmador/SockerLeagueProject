@@ -1,4 +1,4 @@
-﻿namespace SoccerLeague.Client.Services;
+﻿namespace SoccerLeague.Core.Services;
 
 public class LogService
 {
