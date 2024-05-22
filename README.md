@@ -74,7 +74,8 @@ Open terminal and launch the folling command
 
 1. Set the /SoccerLeague.API/appsettings.json file using your current database and socket configuration
     - "DefaultConnection": "Server=localhost:5432;User Id=postgres;Password=admin1234;Database=postgres;Pooling=false;Timeout=300;CommandTimeout=300"
-    - "Socket": "ws://localhost:5000",
+    - "Socket": "ws://localhost:5000"      
+    
     ** If you have problems to connect to postgres and the socket service try using the internet ip from docker network
         - "DefaultConnection": "Server=172.17.0.2:5432;User Id=postgres..."
         - "Socket": "ws://172.17.0.3:5000",    
